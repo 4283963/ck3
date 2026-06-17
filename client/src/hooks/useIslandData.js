@@ -8,6 +8,8 @@ function useIslandData(pollingInterval = 5000) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [lowSocThreshold, setLowSocThreshold] = useState(20);
+  const [savingThreshold, setSavingThreshold] = useState(false);
 
   const abortControllerRef = useRef(null);
   const requestIdRef = useRef(0);
@@ -28,6 +30,67 @@ function useIslandData(pollingInterval = 5000) {
       }
     } catch (err) {
       console.error('获取海岛列表失败:', err);
+    }
+  }, []);
+
+  const fetchThreshold = useCallback(async () => {
+    try {
+      const res = await fetch('/api/data/config/lowSocThreshold');
+      const data = await res.json();
+      if (data.success && data.data !== null) {
+        setLowSocThreshold(data.data);
+      }
+    } catch (err) {
+      console.error('获取阈值配置失败:', err);
+    }
+  }, []);
+
+  const saveThreshold = useCallback(async (value) => {
+    setSavingThreshold(true);
+    try {
+      const res = await fetch('/api/data/config/lowSocThreshold', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ value }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLowSocThreshold(data.data.value);
+        return true;
+      }
+      throw new Error(data.message || '保存失败');
+    } catch (err) {
+      console.error('保存阈值失败:', err);
+      throw err;
+    } finally {
+      setSavingThreshold(false);
+    }
+  }, []);
+
+  const unlockInverter = useCallback(async (inverterId) => {
+    try {
+      const res = await fetch(`/api/data/unlock/${encodeURIComponent(inverterId)}`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setInverters(prev => prev.map(inv =>
+          inv.inverterId === inverterId
+            ? { ...inv, locked: false, controlSwitch: 'unlocked' }
+            : inv
+        ));
+        setSummary(prev => prev ? {
+          ...prev,
+          lockedCount: Math.max(0, prev.lockedCount - 1)
+        } : null);
+        return true;
+      }
+      throw new Error(data.message || '解锁失败');
+    } catch (err) {
+      console.error('解锁逆变器失败:', err);
+      throw err;
     }
   }, []);
 
@@ -103,6 +166,7 @@ function useIslandData(pollingInterval = 5000) {
 
   useEffect(() => {
     fetchIslands();
+    fetchThreshold();
 
     return () => {
       if (abortControllerRef.current) {
@@ -112,7 +176,7 @@ function useIslandData(pollingInterval = 5000) {
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [fetchIslands]);
+  }, [fetchIslands, fetchThreshold]);
 
   useEffect(() => {
     if (!selectedIsland) return;
@@ -146,7 +210,11 @@ function useIslandData(pollingInterval = 5000) {
     loading,
     error,
     lastUpdate,
+    lowSocThreshold,
+    savingThreshold,
     switchIsland,
+    saveThreshold,
+    unlockInverter,
   };
 }
 

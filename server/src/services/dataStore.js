@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const InverterData = require('../models/InverterData');
+const Config = require('../models/Config');
 const MemoryStore = require('./memoryStore');
 
 let useMemory = true;
@@ -78,7 +79,7 @@ const getHistory = async (inverterId = null, limit = 60, islandId = null) => {
   return data.reverse();
 };
 
-const calculateSummary = (latestData) => {
+const calculateSummary = (latestData, lowSocThreshold = 20) => {
   const solarData = latestData.filter(d => d.type === 'solar');
   const batteryData = latestData.filter(d => d.type === 'battery');
 
@@ -96,8 +97,10 @@ const calculateSummary = (latestData) => {
     ? batteryData.reduce((sum, d) => sum + d.soc, 0) / batteryData.length
     : 0;
 
-  const lowBatteryCount = batteryData.filter(d => d.soc < 20).length;
+  const lowBatteryCount = batteryData.filter(d => d.soc < lowSocThreshold).length;
   const warning = lowBatteryCount > 0;
+
+  const lockedCount = batteryData.filter(d => d.locked).length;
 
   return {
     totalSolarPower: parseFloat(totalSolarPower.toFixed(2)),
@@ -106,10 +109,64 @@ const calculateSummary = (latestData) => {
     avgSoc: parseFloat(avgSoc.toFixed(1)),
     lowBatteryCount,
     warning,
+    lockedCount,
+    lowSocThreshold,
     solarInverters: solarData.length,
     batteryInverters: batteryData.length,
     timestamp: new Date()
   };
+};
+
+const getConfig = async (key) => {
+  if (useMemory) {
+    return memoryStore.getConfig(key);
+  }
+  return await Config.findOne({ key });
+};
+
+const setConfig = async (key, value) => {
+  if (useMemory) {
+    return memoryStore.setConfig(key, value);
+  }
+  return await Config.findOneAndUpdate(
+    { key },
+    { value, updatedAt: new Date() },
+    { upsert: true, new: true }
+  );
+};
+
+const setInverterLock = async (inverterId, locked, controlSwitch = 'locked_discharge', reason = '') => {
+  if (useMemory) {
+    return memoryStore.setInverterLock(inverterId, locked, controlSwitch, reason);
+  }
+
+  if (locked) {
+    return {
+      locked: true,
+      controlSwitch,
+      lockReason: reason,
+      lockedAt: new Date()
+    };
+  } else {
+    return {
+      locked: false,
+      controlSwitch: 'unlocked'
+    };
+  }
+};
+
+const getInverterLock = async (inverterId) => {
+  if (useMemory) {
+    return memoryStore.getInverterLock(inverterId);
+  }
+  return { locked: false, controlSwitch: 'unlocked' };
+};
+
+const getAllLockStates = async () => {
+  if (useMemory) {
+    return memoryStore.getAllLockStates();
+  }
+  return {};
 };
 
 module.exports = {
@@ -117,5 +174,10 @@ module.exports = {
   insertMany,
   getLatestData,
   getHistory,
-  calculateSummary
+  calculateSummary,
+  getConfig,
+  setConfig,
+  setInverterLock,
+  getInverterLock,
+  getAllLockStates
 };

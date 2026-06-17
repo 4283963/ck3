@@ -1,4 +1,4 @@
-const { insertMany } = require('./dataStore');
+const { insertMany, getConfig, setInverterLock, getInverterLock } = require('./dataStore');
 
 const islands = [
   { id: 'island-a', name: '东海岛', timezoneOffset: 0 },
@@ -7,6 +7,7 @@ const islands = [
 ];
 
 const islandConfigs = {};
+const lockStates = {};
 
 islands.forEach(island => {
   const solarConfig = [
@@ -34,6 +35,10 @@ islands.forEach(island => {
     batteryStates,
     voltageBase: 480 + island.timezoneOffset * 10,
   };
+
+  batteryConfig.forEach(b => {
+    lockStates[b.id] = { locked: false };
+  });
 });
 
 const getTimeBasedFactor = (island) => {
@@ -67,26 +72,52 @@ const generateSolarData = (inverter, config) => {
   };
 };
 
-const generateBatteryData = (inverter, config) => {
+const generateBatteryData = async (inverter, config, lowSocThreshold) => {
   const state = config.batteryStates[inverter.id];
+  const lockState = lockStates[inverter.id] || { locked: false };
+
   const totalSolarPower = config.solarInverters.reduce((sum, inv) => {
     const timeFactor = getTimeBasedFactor(config.island);
     return sum + inv.maxPower * timeFactor * 0.85;
   }, 0);
   const totalLoad = 1500 + randomWithin(-200, 200);
-  const powerDelta = totalSolarPower - totalLoad;
+  let powerDelta = totalSolarPower - totalLoad;
+
+  if (lockState.locked) {
+    powerDelta = Math.max(0, powerDelta);
+  }
+
   const socDelta = (powerDelta / state.capacity) * (5 / 3600) * 100;
-  
   state.soc = Math.max(0, Math.min(100, state.soc + socDelta));
   state.soc = parseFloat(state.soc.toFixed(1));
 
-  const power = Math.abs(powerDelta / config.batteryInverters.length);
+  let power = Math.abs(powerDelta / config.batteryInverters.length);
   const voltage = randomWithin(config.voltageBase - 40, config.voltageBase);
-  const current = power / voltage;
+  let current = power / voltage;
+
+  if (lockState.locked && powerDelta < 0) {
+    power = 0;
+    current = 0;
+  }
 
   let status = 'normal';
-  if (state.soc < 20) status = 'warning';
+  if (state.soc < lowSocThreshold) status = 'warning';
   if (state.soc < 10) status = 'error';
+
+  if (state.soc < lowSocThreshold && !lockState.locked) {
+    const lockedState = await setInverterLock(
+      inverter.id,
+      true,
+      'locked_discharge',
+      `SOC ${state.soc}% 低于阈值 ${lowSocThreshold}%，自动锁定放电`
+    );
+    lockStates[inverter.id] = { locked: true, ...lockedState };
+    console.log(`🔒 [${inverter.name}] SOC ${state.soc}% < ${lowSocThreshold}%，已自动锁定放电`);
+  } else if (state.soc >= lowSocThreshold && lockState.locked && lockState.autoLocked) {
+    await setInverterLock(inverter.id, false);
+    lockStates[inverter.id] = { locked: false };
+    console.log(`🔓 [${inverter.name}] SOC ${state.soc}% 已恢复，解除锁定`);
+  }
 
   return {
     islandId: config.island.id,
@@ -103,22 +134,36 @@ const generateBatteryData = (inverter, config) => {
   };
 };
 
+const getLowSocThreshold = async () => {
+  const config = await getConfig('lowSocThreshold');
+  if (config && typeof config.value === 'number') {
+    return config.value;
+  }
+  return 20;
+};
+
 const generateAndSaveData = async () => {
   try {
+    const lowSocThreshold = await getLowSocThreshold();
     const dataPoints = [];
 
-    Object.values(islandConfigs).forEach(config => {
+    for (const config of Object.values(islandConfigs)) {
       config.solarInverters.forEach(inv => {
         dataPoints.push(generateSolarData(inv, config));
       });
 
-      config.batteryInverters.forEach(inv => {
-        dataPoints.push(generateBatteryData(inv, config));
-      });
-    });
+      for (const inv of config.batteryInverters) {
+        dataPoints.push(await generateBatteryData(inv, config, lowSocThreshold));
+      }
+    }
 
     const docs = await insertMany(dataPoints);
-    console.log(`[${new Date().toLocaleTimeString()}] 已生成 ${docs.length} 条逆变器数据（${islands.length}个海岛）`);
+    const lockedCount = docs.filter(d => d.locked).length;
+    if (lockedCount > 0) {
+      console.log(`[${new Date().toLocaleTimeString()}] 已生成 ${docs.length} 条数据，其中 ${lockedCount} 台处于锁定状态`);
+    } else {
+      console.log(`[${new Date().toLocaleTimeString()}] 已生成 ${docs.length} 条逆变器数据（${islands.length}个海岛）`);
+    }
   } catch (error) {
     console.error('生成模拟数据失败:', error.message);
   }
@@ -132,4 +177,4 @@ const startDataSimulation = () => {
 
 const getIslands = () => islands;
 
-module.exports = { startDataSimulation, getIslands };
+module.exports = { startDataSimulation, getIslands, getLowSocThreshold };

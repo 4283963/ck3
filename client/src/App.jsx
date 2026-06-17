@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import Dashboard from './components/Dashboard.jsx';
 import WarningBanner from './components/WarningBanner.jsx';
 import IslandSelector from './components/IslandSelector.jsx';
+import ThresholdSetter from './components/ThresholdSetter.jsx';
 import useIslandData from './hooks/useIslandData.js';
 import './App.css';
 
@@ -14,7 +15,11 @@ function App() {
     loading,
     error,
     lastUpdate,
+    lowSocThreshold,
+    savingThreshold,
     switchIsland,
+    saveThreshold,
+    unlockInverter,
   } = useIslandData(5000);
 
   const currentIslandName = useMemo(() => {
@@ -50,8 +55,17 @@ function App() {
 
       <main className="main-content">
         {summary && summary.warning && (
-          <WarningBanner lowBatteryCount={summary.lowBatteryCount} />
+          <WarningBanner
+            lowBatteryCount={summary.lowBatteryCount}
+            threshold={lowSocThreshold}
+          />
         )}
+
+        <ThresholdSetter
+          currentThreshold={lowSocThreshold}
+          onSave={saveThreshold}
+          saving={savingThreshold}
+        />
 
         {loading && <div className="loading">加载中...</div>}
 
@@ -63,7 +77,11 @@ function App() {
         )}
 
         {!loading && !error && summary && (
-          <Dashboard summary={summary} inverters={inverters} />
+          <Dashboard
+            summary={summary}
+            inverters={inverters}
+            onUnlock={unlockInverter}
+          />
         )}
       </main>
     </div>

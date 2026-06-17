@@ -18,10 +18,30 @@
 
 .section-header {
   margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .section-header h2 {
   font-size: 1.3rem;
   color: #e3f2fd;
   font-weight: 600;
+}
+
+.locked-badge {
+  padding: 0.3rem 0.8rem;
+  background: rgba(244, 67, 54, 0.15);
+  color: #ef9a9a;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  animation: lockedBadgePulse 2s ease-in-out infinite;
+}
+
+@keyframes lockedBadgePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }

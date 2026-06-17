@@ -40,6 +40,21 @@ const inverterDataSchema = new mongoose.Schema({
     enum: ['normal', 'warning', 'error'],
     default: 'normal'
   },
+  locked: {
+    type: Boolean,
+    default: false
+  },
+  controlSwitch: {
+    type: String,
+    enum: ['unlocked', 'locked_discharge', 'locked_all'],
+    default: 'unlocked'
+  },
+  lockReason: {
+    type: String
+  },
+  lockedAt: {
+    type: Date
+  },
   timestamp: {
     type: Date,
     default: Date.now,
