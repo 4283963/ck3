@@ -37,13 +37,14 @@ const insertMany = async (docs) => {
   return await InverterData.insertMany(docs);
 };
 
-const getLatestData = async (type = null) => {
+const getLatestData = async (type = null, islandId = null) => {
   if (useMemory) {
-    return memoryStore.findLatestByInverter(type);
+    return memoryStore.findLatestByInverter(type, islandId);
   }
 
   const match = {};
   if (type) match.type = type;
+  if (islandId) match.islandId = islandId;
 
   const result = await InverterData.aggregate([
     { $match: match },
@@ -61,13 +62,14 @@ const getLatestData = async (type = null) => {
   return result;
 };
 
-const getHistory = async (inverterId = null, limit = 60) => {
+const getHistory = async (inverterId = null, limit = 60, islandId = null) => {
   if (useMemory) {
-    return memoryStore.findHistory(inverterId, limit);
+    return memoryStore.findHistory(inverterId, limit, islandId);
   }
 
   const query = {};
   if (inverterId) query.inverterId = inverterId;
+  if (islandId) query.islandId = islandId;
 
   const data = await InverterData.find(query)
     .sort({ timestamp: -1 })
@@ -81,11 +83,12 @@ const calculateSummary = (latestData) => {
   const batteryData = latestData.filter(d => d.type === 'battery');
 
   const totalSolarPower = solarData.reduce((sum, d) => sum + d.power, 0);
-  const totalBatteryCapacity = 2800;
 
+  let totalBatteryCapacity = 0;
   let totalStoredEnergy = 0;
   batteryData.forEach(b => {
-    const cap = b.inverterId === 'BATT-003' ? 800 : 1000;
+    const cap = b.inverterId && b.inverterId.includes('BATT-003') ? 800 : 1000;
+    totalBatteryCapacity += cap;
     totalStoredEnergy += cap * (b.soc / 100);
   });
 

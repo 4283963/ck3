@@ -19,10 +19,11 @@ class MemoryStore {
     return newDocs;
   }
 
-  findLatestByInverter(type = null) {
+  findLatestByInverter(type = null, islandId = null) {
     const latestMap = new Map();
     this.data.forEach(doc => {
       if (type && doc.type !== type) return;
+      if (islandId && doc.islandId !== islandId) return;
       const existing = latestMap.get(doc.inverterId);
       if (!existing || new Date(doc.timestamp) > new Date(existing.timestamp)) {
         latestMap.set(doc.inverterId, doc);
@@ -31,10 +32,13 @@ class MemoryStore {
     return Array.from(latestMap.values()).sort((a, b) => a.inverterId.localeCompare(b.inverterId));
   }
 
-  findHistory(inverterId = null, limit = 60) {
+  findHistory(inverterId = null, limit = 60, islandId = null) {
     let filtered = this.data;
     if (inverterId) {
       filtered = filtered.filter(d => d.inverterId === inverterId);
+    }
+    if (islandId) {
+      filtered = filtered.filter(d => d.islandId === islandId);
     }
     const sorted = [...filtered].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     return sorted.slice(0, limit).reverse();

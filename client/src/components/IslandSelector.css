@@ -1,0 +1,116 @@
+.island-selector {
+  position: relative;
+  display: inline-block;
+}
+
+.island-selector__trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #e3f2fd;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.island-selector__trigger:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.island-selector__trigger:focus {
+  outline: none;
+  border-color: #64b5f6;
+  box-shadow: 0 0 0 2px rgba(100, 181, 246, 0.2);
+}
+
+.island-selector__label {
+  font-size: 1rem;
+}
+
+.island-selector__value {
+  min-width: 60px;
+  text-align: left;
+}
+
+.island-selector__arrow {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  transition: transform 0.2s ease;
+}
+
+.island-selector__arrow--open {
+  transform: rotate(180deg);
+}
+
+.island-selector__dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  min-width: 180px;
+  background: #132f4c;
+  border: 1px solid rgba(100, 181, 246, 0.3);
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  padding: 0.4rem;
+  list-style: none;
+  z-index: 1000;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.island-selector__option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #e3f2fd;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+  transition: background 0.15s ease;
+}
+
+.island-selector__option:hover {
+  background: rgba(100, 181, 246, 0.15);
+}
+
+.island-selector__option--selected {
+  background: rgba(100, 181, 246, 0.2);
+  color: #90caf9;
+}
+
+.island-selector__option-icon {
+  font-size: 1.1rem;
+}
+
+.island-selector__option-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.island-selector__option-check {
+  color: #64b5f6;
+  font-weight: 700;
+}
