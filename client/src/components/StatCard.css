@@ -1,0 +1,104 @@
+.stat-card {
+  background: #132f4c;
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  border-left: 4px solid #1976d2;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.stat-card--solar {
+  border-left-color: #ffb300;
+}
+
+.stat-card--battery {
+  border-left-color: #43a047;
+}
+
+.stat-card--warning {
+  border-left-color: #ff8f00;
+}
+
+.stat-card--info {
+  border-left-color: #1976d2;
+}
+
+.stat-card__icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+
+.stat-card__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.stat-card__title {
+  font-size: 0.95rem;
+  color: #90caf9;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.stat-card__value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin-bottom: 0.3rem;
+}
+
+.stat-card__number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.stat-card__unit {
+  font-size: 0.9rem;
+  color: #90caf9;
+  font-weight: 500;
+}
+
+.stat-card__subtext {
+  font-size: 0.8rem;
+  color: #64b5f6;
+  opacity: 0.8;
+}
+
+.stat-card__progress {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  margin-top: 0.75rem;
+  overflow: hidden;
+}
+
+.stat-card__progress-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.stat-card__progress-bar--solar {
+  background: linear-gradient(90deg, #ffb300, #ffd54f);
+}
+
+.stat-card__progress-bar--battery {
+  background: linear-gradient(90deg, #43a047, #81c784);
+}
+
+.stat-card__progress-bar--warning {
+  background: linear-gradient(90deg, #ff8f00, #ffb74d);
+}
+
+.stat-card__progress-bar--info {
+  background: linear-gradient(90deg, #1976d2, #64b5f6);
+}
